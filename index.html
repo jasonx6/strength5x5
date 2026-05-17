@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>Strong 5×5</title>
+<meta name="theme-color" content="#f97316" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Strong 5×5" />
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet" />
+
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: #f5f5f5; }
+  body { font-family: 'Archivo', system-ui, sans-serif; overscroll-behavior-y: none; }
+  #root { min-height: 100vh; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; }
+  input, textarea { font-family: inherit; }
+
+  /* --- minimal utility classes (replaces Tailwind for a no-build standalone) --- */
+  .app { min-height: 100vh; width: 100%; background: #f5f5f5; color: #404040; }
+  .wrap { max-width: 448px; margin: 0 auto; padding: 20px 16px 0; }
+  .row { display: flex; }
+  .col { display: flex; flex-direction: column; }
+  .between { justify-content: space-between; }
+  .center { align-items: center; justify-content: center; }
+  .aic { align-items: center; }
+  .aie { align-items: flex-end; }
+  .aib { align-items: baseline; }
+  .gap1 { gap: 4px; } .gap15 { gap: 6px; } .gap2 { gap: 8px; } .gap3 { gap: 12px; }
+  .wrapf { flex-wrap: wrap; }
+  .flex1 { flex: 1; }
+  .mb1 { margin-bottom: 4px; } .mb2 { margin-bottom: 8px; } .mb3 { margin-bottom: 12px; }
+  .mb4 { margin-bottom: 16px; } .mb5 { margin-bottom: 20px; }
+  .mt1 { margin-top: 4px; } .mt3 { margin-top: 12px; }
+  .cond { font-family: 'Barlow Condensed', system-ui, sans-serif; }
+
+  .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em;
+           color: #a3a3a3; font-weight: 600; }
+  .accent { color: #f97316; }
+
+  .btn-primary { width: 100%; padding: 16px; border-radius: 16px; background: #f97316;
+                 color: #fff; font-weight: 700; font-size: 18px;
+                 display: flex; align-items: center; justify-content: center; gap: 8px;
+                 box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+                 font-family: 'Barlow Condensed', system-ui, sans-serif; }
+  .btn-primary:active { transform: scale(0.99); }
+
+  .setbtn { border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 24px; user-select: none;
+            font-family: 'Barlow Condensed', system-ui, sans-serif; transition: transform .1s; }
+  .setbtn:active { transform: scale(0.95); }
+
+  .nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+         width: 100%; max-width: 448px; background: #fff; border-top: 1px solid #e5e5e5;
+         display: flex; z-index: 40; box-shadow: 0 -6px 16px rgba(0,0,0,0.05); }
+  .nav button { flex: 1; padding: 10px 0; display: flex; flex-direction: column;
+                align-items: center; gap: 4px; }
+  .navlabel { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+
+  .modal-bg { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.4);
+              display: flex; align-items: flex-end; justify-content: center; padding: 16px; }
+  @media (min-width: 640px) { .modal-bg { align-items: center; } }
+  .modal { width: 100%; max-width: 448px; background: #fff; border: 1px solid #e5e5e5;
+           border-radius: 16px; padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+
+  .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .keypad button { height: 56px; border-radius: 12px; background: #f5f5f5; color: #171717;
+                   font-size: 24px; font-weight: 700;
+                   font-family: 'Barlow Condensed', system-ui, sans-serif; }
+  .keypad button:active { background: #e5e5e5; }
+
+  .toggle { width: 48px; height: 28px; border-radius: 999px; padding: 2px; display: flex;
+            transition: background .15s; }
+  .knob { width: 24px; height: 24px; border-radius: 999px; background: #fff;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: transform .15s; }
+
+  .install-bar { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%);
+                 width: calc(100% - 32px); max-width: 416px; background: #171717; color: #fff;
+                 border-radius: 14px; padding: 12px 14px; display: flex; align-items: center;
+                 gap: 10px; z-index: 35; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback } = React;
+
+/* ---- tiny inline icon set (so there is no lucide dependency) ---- */
+function Icon({ d, size = 20, color = "currentColor", fill = "none", stroke = 2, children }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill}
+      stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round">
+      {d ? <path d={d} /> : children}
+    </svg>
+  );
+}
+const IDumbbell = (p) => <Icon {...p}><path d="M6.5 6.5 17.5 17.5"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></Icon>;
+const IHistory = (p) => <Icon {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></Icon>;
+const ITrending = (p) => <Icon {...p}><path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/></Icon>;
+const ISettings = (p) => <Icon {...p}><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></Icon>;
+const ICheck = (p) => <Icon {...p} d="M20 6 9 17l-5-5"/>;
+const IRotate = (p) => <Icon {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></Icon>;
+const IX = (p) => <Icon {...p} d="M18 6 6 18M6 6l12 12"/>;
+const IPlus = (p) => <Icon {...p} d="M12 5v14M5 12h14"/>;
+const IMinus = (p) => <Icon {...p} d="M5 12h14"/>;
+const ITrophy = (p) => <Icon {...p}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/></Icon>;
+const IAlert = (p) => <Icon {...p}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></Icon>;
+const IPlay = (p) => <Icon {...p} fill="currentColor" stroke="none"><path d="M6 3v18l15-9Z"/></Icon>;
+
+/* ------------------------------------------------------------------ */
+const LIFTS = {
+  squat:    { name: "Squat" },
+  bench:    { name: "Bench Press" },
+  row:      { name: "Barbell Row" },
+  ohp:      { name: "Overhead Press" },
+  deadlift: { name: "Deadlift" },
+};
+const WORKOUTS = { A: ["squat", "bench", "row"], B: ["squat", "ohp", "deadlift"] };
+const SET_COUNT = { squat: 5, bench: 5, row: 5, ohp: 5, deadlift: 1 };
+const TARGET_REPS = 5;
+const PLATES = { kg: [25, 20, 15, 10, 5, 2.5, 1.25], lb: [45, 35, 25, 10, 5, 2.5] };
+const REST_PRESETS = [90, 120, 150, 180, 240, 300];
+const STORE_KEY = "strong5x5-v1";
+
+const defaultData = () => ({
+  unit: "kg", inc: 2.5, incDeadlift: 5, bar: 20, restDuration: 180, showWarmup: true,
+  weights: { squat: 20, bench: 20, row: 30, ohp: 20, deadlift: 40 },
+  fails: { squat: 0, bench: 0, row: 0, ohp: 0, deadlift: 0 },
+  nextWorkout: "A", current: null, restEndsAt: null, history: [],
+});
+
+const fmt = (w) => {
+  if (w == null || isNaN(w)) return "0";
+  if (Number.isInteger(w)) return String(w);
+  return w.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+};
+const roundStep = (w, s) => Math.round(w / s) * s;
+const clean = (x) => Math.round(x * 100) / 100;
+
+function platesPerSide(weight, bar, unit) {
+  let per = (weight - bar) / 2;
+  if (per <= 0.0001) return [];
+  const out = [];
+  for (const p of PLATES[unit]) {
+    while (per >= p - 1e-9) { out.push(p); per -= p; }
+  }
+  return out;
+}
+
+function warmupSets(work, bar, unit) {
+  if (work <= bar) return [];
+  const grain = unit === "lb" ? 2.5 : 1.25;
+  const rnd = (w) => Math.round(w / grain) * grain;
+  const out = [{ weight: bar, reps: 5 }, { weight: bar, reps: 5 }];
+  const ramps = [{ pct: 0.4, reps: 5 }, { pct: 0.6, reps: 3 }, { pct: 0.8, reps: 2 }];
+  let prev = bar;
+  for (const r of ramps) {
+    const w = rnd(work * r.pct);
+    if (w > prev && w < work) { out.push({ weight: w, reps: r.reps }); prev = w; }
+  }
+  return out;
+}
+
+function convert(data, unit) {
+  if (data.unit === unit) return data;
+  const f = unit === "lb" ? 2.20462 : 0.453592;
+  const grain = unit === "lb" ? 2.5 : 1.25;
+  const bar = unit === "lb" ? 45 : 20;
+  const r = (w) => Math.max(bar, roundStep(w * f, grain));
+  const weights = {};
+  for (const k in data.weights) weights[k] = r(data.weights[k]);
+  const history = data.history.map((h) => ({
+    ...h, entries: h.entries.map((e) => ({ ...e, weight: r(e.weight) })),
+  }));
+  return {
+    ...data, unit, bar, weights, history,
+    inc: unit === "lb" ? 5 : 2.5, incDeadlift: unit === "lb" ? 10 : 5,
+  };
+}
+
+let audioCtx = null;
+function beep() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!audioCtx) audioCtx = new Ctx();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    [0, 0.26, 0.52].forEach((t) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = "square"; o.frequency.value = 920;
+      const s = audioCtx.currentTime + t;
+      g.gain.setValueAtTime(0.0001, s);
+      g.gain.exponentialRampToValueAtTime(0.32, s + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, s + 0.2);
+      o.start(s); o.stop(s + 0.22);
+    });
+  } catch (e) {}
+  try { if (navigator.vibrate) navigator.vibrate([220, 90, 220]); } catch (e) {}
+}
+
+const D = { fontFamily: "'Barlow Condensed', system-ui, sans-serif" };
+
+/* ---- localStorage-backed persistence ---- */
+const Store = {
+  load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) { return null; }
+  },
+  save(data) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+    catch (e) { console.error("save failed", e); }
+  },
+};
+
+/* ------------------------------------------------------------------ */
+function SetButton({ value, single, onTap }) {
+  let style = { background: "#fafafa", border: "2px solid #d4d4d4", color: "#d4d4d4" };
+  if (value === TARGET_REPS) style = { background: "#f97316", border: "2px solid #f97316", color: "#fff" };
+  else if (value != null && value > 0) style = { background: "#fbbf24", border: "2px solid #fbbf24", color: "#171717" };
+  else if (value === 0) style = { background: "#fef2f2", border: "2px solid #f87171", color: "#ef4444" };
+  return (
+    <button
+      onClick={onTap}
+      className="setbtn"
+      style={{ ...style, ...(single ? { width: 64, height: 64 } : { flex: 1, aspectRatio: "1" }) }}
+    >
+      {value == null ? TARGET_REPS : value}
+    </button>
+  );
+}
+
+function ExerciseCard({ lift, weight, sets, warmDone, showWarmup, last, bar, unit, onTapSet, onTapWarmup }) {
+  const plates = platesPerSide(weight, bar, unit);
+  const done = sets.filter((s) => s === TARGET_REPS).length;
+  const total = SET_COUNT[lift];
+  const warm = showWarmup ? warmupSets(weight, bar, unit) : [];
+  return (
+    <div className="card" style={{ overflow: "hidden" }}>
+      <div className="row between aie" style={{ padding: "14px 16px 8px" }}>
+        <div>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.18em", color: "#a3a3a3", fontWeight: 600 }}>
+            {LIFTS[lift].name}
+          </div>
+          <div className="row aib gap15" style={{ marginTop: 2 }}>
+            <span style={{ ...D, fontSize: 36, color: "#171717", fontWeight: 700, lineHeight: 1 }}>{fmt(weight)}</span>
+            <span style={{ fontSize: 14, color: "#a3a3a3", fontWeight: 600 }}>{unit}</span>
+            <span style={{ fontSize: 14, color: "#a3a3a3", marginLeft: 6 }}>{total}×{TARGET_REPS}</span>
+          </div>
+        </div>
+        <div style={{ ...D, fontSize: 24, fontWeight: 700, lineHeight: 1, color: done === total ? "#f97316" : "#d4d4d4" }}>
+          {done}/{total}
+        </div>
+      </div>
+
+      <div className="row aic gap1 wrapf" style={{ padding: "0 16px 8px", minHeight: 18 }}>
+        {plates.length === 0
+          ? <span style={{ fontSize: 11, color: "#a3a3a3" }}>empty bar</span>
+          : plates.map((p, i) => (
+              <span key={i} style={{ fontSize: 10, fontWeight: 700, color: "#737373", background: "#f5f5f5", borderRadius: 4, padding: "2px 6px", lineHeight: 1 }}>
+                {fmt(p)}
+              </span>
+            ))}
+        <span style={{ fontSize: 10, color: "#a3a3a3", marginLeft: 2 }}>per side</span>
+      </div>
+
+      {warm.length > 0 && (
+        <div style={{ padding: "0 16px 10px" }}>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: "#a3a3a3", fontWeight: 600, marginBottom: 6 }}>
+            Warm-up
+          </div>
+          <div className="row gap15 wrapf">
+            {warm.map((w, i) => {
+              const wd = !!(warmDone && warmDone[i]);
+              return (
+                <button
+                  key={i}
+                  onClick={() => onTapWarmup(lift, i)}
+                  className="row aic gap1"
+                  style={{
+                    height: 36, padding: "0 10px", borderRadius: 8,
+                    border: wd ? "1px solid #262626" : "1px solid #d4d4d4",
+                    background: wd ? "#262626" : "#fff",
+                    color: wd ? "#fff" : "#737373",
+                  }}
+                >
+                  {wd && <ICheck size={12} />}
+                  <span style={{ ...D, fontSize: 14, fontWeight: 700 }}>{fmt(w.weight)}</span>
+                  <span style={{ fontSize: 10, opacity: 0.7 }}>×{w.reps}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {warm.length > 0 && (
+        <div style={{ padding: "0 16px", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: "#a3a3a3", fontWeight: 600 }}>
+          Working sets
+        </div>
+      )}
+      <div className="row gap2" style={{ padding: "6px 16px 12px" }}>
+        {sets.map((v, i) => (
+          <SetButton key={i} value={v} single={total === 1} onTap={() => onTapSet(lift, i)} />
+        ))}
+      </div>
+
+      {last && (
+        <div className="row aic gap15" style={{ padding: "0 16px 10px", marginTop: -4 }}>
+          <span style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: ".05em", color: "#a3a3a3" }}>Last</span>
+          <span style={{ fontSize: 11, color: "#737373" }}>
+            {fmt(last.weight)}{unit} · {last.reps.join("·")}
+          </span>
+          {last.success
+            ? <ICheck size={11} color="#f97316" />
+            : <IRotate size={10} color="#a3a3a3" />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RestBanner({ endsAt, onAdjust, onSkip }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, []);
+  const remaining = Math.round((endsAt - now) / 1000);
+  const over = remaining <= 0;
+  const mm = Math.floor(Math.abs(remaining) / 60);
+  const ss = String(Math.abs(remaining) % 60).padStart(2, "0");
+  const sub = { background: over ? "#ea580c" : "#f5f5f5", color: over ? "#fff" : "#737373" };
+  return (
+    <div className="row aic gap3" style={{
+      padding: "10px 12px",
+      background: over ? "#f97316" : "#fff",
+      borderTop: over ? "1px solid #f97316" : "1px solid #e5e5e5",
+      boxShadow: "0 -6px 16px rgba(0,0,0,0.06)",
+    }}>
+      <div className="flex1" style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", fontWeight: 600, color: over ? "#ffedd5" : "#a3a3a3" }}>
+          {over ? "Rest complete — go" : "Rest"}
+        </div>
+        <div style={{ ...D, fontSize: 30, fontWeight: 700, lineHeight: 1, color: over ? "#fff" : "#171717" }}>
+          {over ? "+" : ""}{mm}:{ss}
+        </div>
+      </div>
+      <button onClick={() => onAdjust(-30)} style={{ height: 36, padding: "0 12px", borderRadius: 8, fontSize: 14, fontWeight: 700, ...sub }}>−30</button>
+      <button onClick={() => onAdjust(30)} style={{ height: 36, padding: "0 12px", borderRadius: 8, fontSize: 14, fontWeight: 700, ...sub }}>+30</button>
+      <button onClick={onSkip} className="center" style={{ height: 36, width: 36, borderRadius: 8, background: over ? "#fff" : "#f5f5f5", color: over ? "#ea580c" : "#a3a3a3" }}>
+        <IX size={18} />
+      </button>
+    </div>
+  );
+}
+
+function Modal({ children }) {
+  return <div className="modal-bg"><div className="modal">{children}</div></div>;
+}
+
+function Toggle({ on, onChange }) {
+  return (
+    <button className="toggle" onClick={() => onChange(!on)} style={{ background: on ? "#f97316" : "#d4d4d4" }}>
+      <div className="knob" style={{ transform: on ? "translateX(20px)" : "translateX(0)" }} />
+    </button>
+  );
+}
+
+function Stepper({ value, unit, step, min, onChange, onEdit }) {
+  const sq = { width: 36, height: 36, borderRadius: 8, background: "#f5f5f5", color: "#525252" };
+  return (
+    <div className="row aic gap15">
+      <button className="center" style={sq} onClick={() => onChange(Math.max(min, clean(value - step)))}><IMinus size={16} /></button>
+      <button className="center gap1" style={{ minWidth: 68, padding: "0 8px", height: 36, borderRadius: 8, background: "#f5f5f5" }} onClick={onEdit}>
+        <span style={{ ...D, fontSize: 16, fontWeight: 700, color: "#171717" }}>{fmt(value)}</span>
+        {unit && <span style={{ fontSize: 11, color: "#a3a3a3" }}>{unit}</span>}
+      </button>
+      <button className="center" style={sq} onClick={() => onChange(clean(value + step))}><IPlus size={16} /></button>
+    </div>
+  );
+}
+
+function KeypadModal({ title, unit, initial, onCancel, onSave }) {
+  const [str, setStr] = useState(initial != null ? String(initial) : "");
+  const press = (ch) => setStr((s) => {
+    if (ch === "del") return s.slice(0, -1);
+    if (ch === ".") return s.includes(".") ? s : (s === "" ? "0." : s + ".");
+    if (s === "0") return ch;
+    if (s.replace(".", "").length >= 6) return s;
+    return s + ch;
+  });
+  const val = parseFloat(str);
+  const valid = !isNaN(val) && val > 0;
+  return (
+    <Modal>
+      <div className="label" style={{ marginBottom: 6 }}>{title}</div>
+      <div className="row aib gap15" style={{ marginBottom: 16, background: "#f5f5f5", borderRadius: 12, padding: "12px 16px", minHeight: 58 }}>
+        <span style={{ ...D, fontSize: 36, fontWeight: 700, lineHeight: 1, color: "#171717" }}>{str || "0"}</span>
+        {unit && <span style={{ fontSize: 14, color: "#a3a3a3", fontWeight: 600 }}>{unit}</span>}
+      </div>
+      <div className="keypad mb4">
+        {["1","2","3","4","5","6","7","8","9",".","0","del"].map((k) => (
+          <button key={k} onClick={() => press(k)}>{k === "del" ? "\u232B" : k}</button>
+        ))}
+      </div>
+      <div className="row gap2">
+        <button className="flex1" style={{ padding: "12px 0", borderRadius: 12, background: "#f5f5f5", color: "#525252", fontWeight: 600 }} onClick={onCancel}>Cancel</button>
+        <button
+          className="flex1"
+          disabled={!valid}
+          onClick={() => valid && onSave(val)}
+          style={{ ...D, padding: "12px 0", borderRadius: 12, fontWeight: 700,
+                   background: valid ? "#f97316" : "#f5f5f5", color: valid ? "#fff" : "#d4d4d4" }}
+        >Save</button>
+      </div>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+function App() {
+  const [data, setData] = useState(defaultData);
+  const [loaded, setLoaded] = useState(false);
+  const [tab, setTab] = useState("workout");
+  const [summary, setSummary] = useState(null);
+  const [confirm, setConfirm] = useState(null);
+  const [progressLift, setProgressLift] = useState("squat");
+  const [installEvt, setInstallEvt] = useState(null);
+
+  useEffect(() => {
+    const p = Store.load();
+    if (p) {
+      if (p.restEndsAt && p.restEndsAt < Date.now()) p.restEndsAt = null;
+      setData({ ...defaultData(), ...p });
+    }
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => { if (loaded) Store.save(data); }, [data, loaded]);
+
+  useEffect(() => {
+    if (!data.restEndsAt) return;
+    const ms = data.restEndsAt - Date.now();
+    if (ms <= 0) return;
+    const id = setTimeout(() => beep(), ms);
+    return () => clearTimeout(id);
+  }, [data.restEndsAt]);
+
+  /* capture the Android "install app" prompt */
+  useEffect(() => {
+    const h = (e) => { e.preventDefault(); setInstallEvt(e); };
+    window.addEventListener("beforeinstallprompt", h);
+    return () => window.removeEventListener("beforeinstallprompt", h);
+  }, []);
+
+  const startWorkout = (which) => {
+    setData((d) => {
+      const sets = {}, warmups = {};
+      WORKOUTS[which].forEach((l) => {
+        sets[l] = Array(SET_COUNT[l]).fill(null);
+        warmups[l] = Array(warmupSets(d.weights[l], d.bar, d.unit).length).fill(false);
+      });
+      return { ...d, current: { workout: which, sets, warmups } };
+    });
+  };
+
+  const tapSet = useCallback((lift, idx) => {
+    setData((d) => {
+      if (!d.current) return d;
+      const order = [null, 5, 4, 3, 2, 1, 0];
+      const cur = d.current.sets[lift][idx];
+      const next = order[(order.indexOf(cur) + 1) % order.length];
+      const sets = { ...d.current.sets, [lift]: d.current.sets[lift].slice() };
+      sets[lift][idx] = next;
+      const startRest = cur == null && next === TARGET_REPS;
+      return {
+        ...d, current: { ...d.current, sets },
+        restEndsAt: startRest ? Date.now() + d.restDuration * 1000 : d.restEndsAt,
+      };
+    });
+  }, []);
+
+  const tapWarmup = useCallback((lift, idx) => {
+    setData((d) => {
+      if (!d.current) return d;
+      const warmups = { ...(d.current.warmups || {}) };
+      const arr = (warmups[lift] || []).slice();
+      arr[idx] = !arr[idx];
+      warmups[lift] = arr;
+      return { ...d, current: { ...d.current, warmups } };
+    });
+  }, []);
+
+  const doFinish = () => {
+    setData((d) => {
+      if (!d.current) return d;
+      const lifts = WORKOUTS[d.current.workout];
+      const weights = { ...d.weights }, fails = { ...d.fails };
+      const entries = [], results = [];
+      for (const lift of lifts) {
+        const reps = d.current.sets[lift].map((r) => (r == null ? 0 : r));
+        const success = reps.length === SET_COUNT[lift] && reps.every((r) => r >= TARGET_REPS);
+        const weight = d.weights[lift];
+        entries.push({ lift, weight, reps, success });
+        const step = lift === "deadlift" ? d.incDeadlift : d.inc;
+        if (success) {
+          weights[lift] = weight + step; fails[lift] = 0;
+          results.push({ lift, type: "up", from: weight, to: weight + step });
+        } else {
+          const f = (d.fails[lift] || 0) + 1;
+          if (f >= 3) {
+            const dl = Math.max(d.bar, roundStep(weight * 0.9, step));
+            weights[lift] = dl; fails[lift] = 0;
+            results.push({ lift, type: "deload", from: weight, to: dl });
+          } else {
+            fails[lift] = f;
+            results.push({ lift, type: "stay", from: weight, to: weight, fails: f });
+          }
+        }
+      }
+      const entry = { id: Date.now(), date: new Date().toISOString(), workout: d.current.workout, entries };
+      setSummary({ workout: d.current.workout, results });
+      return {
+        ...d, weights, fails, history: [entry, ...d.history],
+        current: null, restEndsAt: null,
+        nextWorkout: d.current.workout === "A" ? "B" : "A",
+      };
+    });
+  };
+
+  const finishWorkout = () => {
+    const c = data.current;
+    const incomplete = WORKOUTS[c.workout].some((l) => c.sets[l].some((s) => s == null));
+    if (incomplete) {
+      setConfirm({
+        title: "Finish workout?",
+        body: "Some sets aren't logged. Untracked sets count as 0 reps (a missed set).",
+        action: doFinish,
+      });
+    } else doFinish();
+  };
+
+  const lastFor = (lift) => {
+    for (const h of data.history) {
+      const e = h.entries.find((x) => x.lift === lift);
+      if (e) return e;
+    }
+    return null;
+  };
+
+  const doInstall = async () => {
+    if (!installEvt) return;
+    installEvt.prompt();
+    await installEvt.userChoice;
+    setInstallEvt(null);
+  };
+
+  if (!loaded) {
+    return <div className="app center" style={{ display: "flex" }}><IDumbbell size={40} color="#f97316" /></div>;
+  }
+
+  const restActive = data.restEndsAt != null;
+
+  return (
+    <div className="app">
+      <div className="wrap" style={{ paddingBottom: restActive ? 168 : 96 }}>
+        <div className="row aic gap2 mb5">
+          <div className="center" style={{ width: 36, height: 36, borderRadius: 8, background: "#f97316" }}>
+            <IDumbbell size={20} color="#fff" />
+          </div>
+          <div>
+            <div style={{ ...D, fontSize: 18, fontWeight: 700, lineHeight: 1, color: "#171717", letterSpacing: "-0.01em" }}>STRONG 5×5</div>
+            <div className="label">Progression tracker</div>
+          </div>
+        </div>
+
+        {tab === "workout" && (
+          <WorkoutTab
+            data={data} lastFor={lastFor}
+            onStart={startWorkout} onTapSet={tapSet} onTapWarmup={tapWarmup} onFinish={finishWorkout}
+            onCancel={() => setConfirm({
+              title: "Cancel workout?",
+              body: "All sets logged in this session will be discarded.",
+              action: () => setData((d) => ({ ...d, current: null, restEndsAt: null })),
+            })}
+            onSwitch={() => setData((d) => ({ ...d, nextWorkout: d.nextWorkout === "A" ? "B" : "A" }))}
+          />
+        )}
+        {tab === "history" && <HistoryTab data={data} />}
+        {tab === "progress" && <ProgressTab data={data} lift={progressLift} setLift={setProgressLift} />}
+        {tab === "settings" && (
+          <SettingsTab
+            data={data} setData={setData}
+            onClear={() => setConfirm({
+              title: "Erase all data?",
+              body: "Workout history, weights and progress will be permanently deleted.",
+              action: () => setData(defaultData()),
+            })}
+          />
+        )}
+      </div>
+
+      {installEvt && !restActive && (
+        <div className="install-bar">
+          <IDumbbell size={20} color="#f97316" />
+          <div className="flex1" style={{ fontSize: 13 }}>Install Strong 5×5 to your home screen</div>
+          <button onClick={doInstall} style={{ ...D, background: "#f97316", color: "#fff", fontWeight: 700, padding: "6px 12px", borderRadius: 8 }}>Install</button>
+          <button onClick={() => setInstallEvt(null)} style={{ color: "#a3a3a3" }}><IX size={16} /></button>
+        </div>
+      )}
+
+      {restActive && (
+        <div style={{ position: "fixed", bottom: 64, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 448, zIndex: 30 }}>
+          <RestBanner
+            endsAt={data.restEndsAt}
+            onAdjust={(s) => setData((d) => ({ ...d, restEndsAt: Math.max(Date.now(), d.restEndsAt + s * 1000) }))}
+            onSkip={() => setData((d) => ({ ...d, restEndsAt: null }))}
+          />
+        </div>
+      )}
+
+      <nav className="nav">
+        {[["workout", IDumbbell, "Workout"], ["history", IHistory, "History"],
+          ["progress", ITrending, "Progress"], ["settings", ISettings, "Settings"]].map(([id, Ic, label]) => (
+          <button key={id} onClick={() => setTab(id)} style={{ color: tab === id ? "#f97316" : "#a3a3a3" }}>
+            <Ic size={20} />
+            <span className="navlabel">{label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {summary && (
+        <Modal>
+          <div className="row aic gap2 mb4">
+            <ITrophy size={22} color="#f97316" />
+            <h2 style={{ ...D, fontSize: 20, fontWeight: 700, color: "#171717", margin: 0 }}>Workout {summary.workout} done</h2>
+          </div>
+          <div className="col gap2 mb5">
+            {summary.results.map((r) => (
+              <div key={r.lift} className="row between aic" style={{ background: "#f5f5f5", borderRadius: 8, padding: "8px 12px" }}>
+                <span style={{ fontSize: 14, fontWeight: 500, color: "#404040" }}>{LIFTS[r.lift].name}</span>
+                <span style={{ fontSize: 14, fontWeight: 600 }}>
+                  {r.type === "up" && <span style={{ color: "#ea580c" }}>{fmt(r.from)} → {fmt(r.to)} {data.unit}</span>}
+                  {r.type === "stay" && <span style={{ color: "#d97706" }}>repeat {fmt(r.to)} · miss {r.fails}/3</span>}
+                  {r.type === "deload" && <span style={{ color: "#dc2626" }}>deload → {fmt(r.to)} {data.unit}</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+          <button className="btn-primary" onClick={() => setSummary(null)}>DONE</button>
+        </Modal>
+      )}
+
+      {confirm && (
+        <Modal>
+          <div className="row aic gap2 mb2">
+            <IAlert size={20} color="#f59e0b" />
+            <h2 style={{ ...D, fontSize: 18, fontWeight: 700, color: "#171717", margin: 0 }}>{confirm.title}</h2>
+          </div>
+          <p style={{ fontSize: 14, color: "#737373", marginBottom: 20 }}>{confirm.body}</p>
+          <div className="row gap2">
+            <button className="flex1" style={{ padding: "12px 0", borderRadius: 12, background: "#f5f5f5", color: "#525252", fontWeight: 600 }} onClick={() => setConfirm(null)}>Keep going</button>
+            <button className="flex1" style={{ ...D, padding: "12px 0", borderRadius: 12, background: "#f97316", color: "#fff", fontWeight: 700 }}
+              onClick={() => { confirm.action(); setConfirm(null); }}>Confirm</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function WorkoutTab({ data, lastFor, onStart, onTapSet, onTapWarmup, onFinish, onCancel, onSwitch }) {
+  if (!data.current) {
+    const which = data.nextWorkout;
+    const dayCount = data.history.length;
+    return (
+      <div>
+        <div className="row between aic mb3">
+          <div>
+            <div className="label">Up next</div>
+            <div style={{ ...D, fontSize: 30, fontWeight: 700, color: "#171717" }}>Workout {which}</div>
+          </div>
+          <button onClick={onSwitch} style={{ padding: "8px 12px", borderRadius: 8, background: "#e5e5e5", color: "#525252", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" }}>
+            Switch to {which === "A" ? "B" : "A"}
+          </button>
+        </div>
+        <div className="col gap2 mb4">
+          {WORKOUTS[which].map((l) => (
+            <div key={l} className="card row between aic" style={{ padding: "12px 16px" }}>
+              <span style={{ fontWeight: 500, color: "#404040" }}>{LIFTS[l].name}</span>
+              <span style={{ fontSize: 14, color: "#a3a3a3" }}>
+                <span style={{ ...D, color: "#171717", fontWeight: 700, fontSize: 18 }}>{fmt(data.weights[l])}</span>
+                <span style={{ marginLeft: 4 }}>{data.unit}</span>
+                <span style={{ marginLeft: 8 }}>{SET_COUNT[l]}×{TARGET_REPS}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        <button className="btn-primary" onClick={() => onStart(which)}>
+          <IPlay size={20} /> START WORKOUT {which}
+        </button>
+        <p style={{ textAlign: "center", fontSize: 11, color: "#a3a3a3", marginTop: 12 }}>
+          {dayCount} workout{dayCount === 1 ? "" : "s"} logged · A/B alternates automatically
+        </p>
+      </div>
+    );
+  }
+  const c = data.current;
+  return (
+    <div>
+      <div className="row between aic mb3">
+        <div style={{ ...D, fontSize: 30, fontWeight: 700, color: "#171717" }}>Workout {c.workout}</div>
+        <button onClick={onCancel} style={{ fontSize: 12, color: "#a3a3a3", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" }}>Cancel</button>
+      </div>
+      <div className="col gap3 mb4">
+        {WORKOUTS[c.workout].map((l) => (
+          <ExerciseCard
+            key={l} lift={l} weight={data.weights[l]} sets={c.sets[l]}
+            warmDone={(c.warmups || {})[l] || []} showWarmup={data.showWarmup}
+            last={lastFor(l)} bar={data.bar} unit={data.unit}
+            onTapSet={onTapSet} onTapWarmup={onTapWarmup}
+          />
+        ))}
+      </div>
+      <button className="btn-primary" onClick={onFinish}><ICheck size={22} /> FINISH WORKOUT</button>
+      <p style={{ textAlign: "center", fontSize: 11, color: "#a3a3a3", marginTop: 12 }}>
+        Tap a set to log reps · tap again to lower the count
+      </p>
+    </div>
+  );
+}
+
+function HistoryTab({ data }) {
+  if (data.history.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "80px 0" }}>
+        <IHistory size={40} color="#d4d4d4" />
+        <p style={{ color: "#a3a3a3", fontSize: 14 }}>No workouts logged yet.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="col gap3">
+      <div className="label">History</div>
+      {data.history.map((h) => {
+        const d = new Date(h.date);
+        return (
+          <div key={h.id} className="card" style={{ padding: 16 }}>
+            <div className="row between aic" style={{ marginBottom: 10 }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "#404040" }}>
+                {d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+              </span>
+              <span style={{ ...D, fontSize: 12, fontWeight: 700, color: "#ea580c", background: "#ffedd5", borderRadius: 4, padding: "2px 8px" }}>
+                WORKOUT {h.workout}
+              </span>
+            </div>
+            <div className="col gap15">
+              {h.entries.map((e) => (
+                <div key={e.lift} className="row between aic">
+                  <span style={{ fontSize: 13, color: "#737373" }}>{LIFTS[e.lift].name}</span>
+                  <div className="row aic gap2">
+                    <span style={{ fontSize: 13, color: "#a3a3a3" }}>{e.reps.join("·")}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#262626" }}>{fmt(e.weight)}{data.unit}</span>
+                    {e.success ? <ICheck size={13} color="#f97316" /> : <IRotate size={12} color="#a3a3a3" />}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ProgressTab({ data, lift, setLift }) {
+  const series = [...data.history].reverse()
+    .filter((h) => h.entries.some((e) => e.lift === lift))
+    .map((h, i) => {
+      const e = h.entries.find((x) => x.lift === lift);
+      return { i: i + 1, weight: e.weight, date: new Date(h.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }) };
+    });
+  const best = (l) => {
+    let m = 0;
+    data.history.forEach((h) => h.entries.forEach((e) => {
+      if (e.lift === l && e.success && e.weight > m) m = e.weight;
+    }));
+    return m || data.weights[l];
+  };
+  return (
+    <div>
+      <div className="label mb2">Current weights</div>
+      <div className="mb5" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6 }}>
+        {Object.keys(LIFTS).map((l) => (
+          <div key={l} className="card" style={{ padding: "8px 0", textAlign: "center" }}>
+            <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: ".05em", color: "#a3a3a3" }}>{l.slice(0, 4)}</div>
+            <div style={{ ...D, fontSize: 18, fontWeight: 700, color: "#171717", lineHeight: 1.2 }}>{fmt(data.weights[l])}</div>
+          </div>
+        ))}
+      </div>
+      <div className="row gap15 wrapf mb3">
+        {Object.entries(LIFTS).map(([k, v]) => (
+          <button key={k} onClick={() => setLift(k)}
+            style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                     background: lift === k ? "#f97316" : "#fff",
+                     border: lift === k ? "none" : "1px solid #e5e5e5",
+                     color: lift === k ? "#fff" : "#737373" }}>
+            {v.name}
+          </button>
+        ))}
+      </div>
+      <div className="card" style={{ padding: 16 }}>
+        <div className="row between aib mb3">
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#404040" }}>{LIFTS[lift].name}</span>
+          <span style={{ fontSize: 12, color: "#a3a3a3" }}>
+            Best <span style={{ ...D, color: "#ea580c", fontWeight: 700 }}>{fmt(best(lift))}{data.unit}</span>
+          </span>
+        </div>
+        {series.length === 0 ? (
+          <div className="center" style={{ height: 176, color: "#a3a3a3", fontSize: 14 }}>Log a workout to see progress</div>
+        ) : (
+          <div style={{ height: 176 }}>
+            <MiniChart series={series} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* Inline SVG line chart — no chart library, so the app stays a self-contained
+   single file with minimal dependencies (better for offline reliability). */
+function MiniChart({ series }) {
+  const W = 320, H = 176, padL = 34, padR = 10, padT = 12, padB = 24;
+  const ws = series.map((s) => s.weight);
+  let lo = Math.min(...ws) - 5, hi = Math.max(...ws) + 5;
+  const span = hi - lo || 1;
+  const n = series.length;
+  const x = (i) => padL + (n === 1 ? (W - padL - padR) / 2 : (i * (W - padL - padR)) / (n - 1));
+  const y = (w) => padT + (H - padT - padB) * (1 - (w - lo) / span);
+  const pts = series.map((s, i) => [x(i), y(s.weight)]);
+  const path = pts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  const ticks = [lo, lo + span / 2, hi];
+  return (
+    <svg viewBox={"0 0 " + W + " " + H} width="100%" height={H} style={{ display: "block" }}>
+      {ticks.map((t, i) => {
+        const yy = y(t);
+        return (
+          <g key={i}>
+            <line x1={padL} y1={yy} x2={W - padR} y2={yy} stroke="#e5e5e5" strokeWidth="1" />
+            <text x={padL - 6} y={yy + 3} textAnchor="end" fontSize="10" fill="#a3a3a3">{fmt(Math.round(t))}</text>
+          </g>
+        );
+      })}
+      {series.map((s, i) => (
+        <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize="10" fill="#a3a3a3">{s.date}</text>
+      ))}
+      <path d={path} fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      {pts.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r="3.5" fill="#f97316" />)}
+    </svg>
+  );
+}
+
+function SetRow({ label, children }) {
+  return (
+    <div className="row between aic" style={{ padding: "10px 0" }}>
+      <span style={{ fontSize: 14, color: "#404040" }}>{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function SettingsTab({ data, setData, onClear }) {
+  const [editing, setEditing] = useState(null);
+  const setField = (field, n) => setData((d) => {
+    if (field === "inc") return { ...d, inc: n };
+    if (field === "incDeadlift") return { ...d, incDeadlift: n };
+    if (field === "bar") return { ...d, bar: n };
+    return { ...d, weights: { ...d.weights, [field]: n } };
+  });
+  const micro = data.unit === "lb" ? 2.5 : 1.25;
+  const divide = { borderTop: "1px solid #f0f0f0" };
+
+  return (
+    <div className="col gap5" style={{ gap: 20 }}>
+      <div>
+        <div className="label mb1">Units</div>
+        <div className="card" style={{ padding: "0 16px" }}>
+          <SetRow label="Weight unit">
+            <div className="row gap1" style={{ background: "#f5f5f5", borderRadius: 8, padding: 2 }}>
+              {["kg", "lb"].map((u) => (
+                <button key={u} onClick={() => setData((d) => convert(d, u))}
+                  style={{ padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 700,
+                           background: data.unit === u ? "#f97316" : "transparent",
+                           color: data.unit === u ? "#fff" : "#737373" }}>
+                  {u.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </SetRow>
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb1">Workout</div>
+        <div className="card" style={{ padding: "0 16px" }}>
+          <SetRow label="Show warm-up sets">
+            <Toggle on={data.showWarmup} onChange={(v) => setData((d) => ({ ...d, showWarmup: v }))} />
+          </SetRow>
+        </div>
+        <p style={{ fontSize: 11, color: "#a3a3a3", margin: "6px 4px 0" }}>
+          Two empty-bar sets plus ramp sets building up to each working weight.
+        </p>
+      </div>
+
+      <div>
+        <div className="label mb1">Progression</div>
+        <div className="card" style={{ padding: "0 16px" }}>
+          <SetRow label={"Increment (" + data.unit + ")"}>
+            <Stepper value={data.inc} step={micro} min={micro}
+              onChange={(n) => setField("inc", n)}
+              onEdit={() => setEditing({ field: "inc", title: "Increment (" + data.unit + ")", value: data.inc })} />
+          </SetRow>
+          <div style={divide}>
+            <SetRow label={"Deadlift increment (" + data.unit + ")"}>
+              <Stepper value={data.incDeadlift} step={micro} min={micro}
+                onChange={(n) => setField("incDeadlift", n)}
+                onEdit={() => setEditing({ field: "incDeadlift", title: "Deadlift increment (" + data.unit + ")", value: data.incDeadlift })} />
+            </SetRow>
+          </div>
+          <div style={divide}>
+            <SetRow label={"Bar weight (" + data.unit + ")"}>
+              <Stepper value={data.bar} step={micro} min={micro}
+                onChange={(n) => setField("bar", n)}
+                onEdit={() => setEditing({ field: "bar", title: "Bar weight (" + data.unit + ")", value: data.bar })} />
+            </SetRow>
+          </div>
+        </div>
+        <p style={{ fontSize: 11, color: "#a3a3a3", margin: "6px 4px 0" }}>
+          3 missed sessions on a lift triggers an automatic 10% deload.
+        </p>
+      </div>
+
+      <div>
+        <div className="label mb1">Rest timer default</div>
+        <div className="row gap15 wrapf">
+          {REST_PRESETS.map((s) => (
+            <button key={s} onClick={() => setData((d) => ({ ...d, restDuration: s }))}
+              style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                       background: data.restDuration === s ? "#f97316" : "#fff",
+                       border: data.restDuration === s ? "none" : "1px solid #e5e5e5",
+                       color: data.restDuration === s ? "#fff" : "#737373" }}>
+              {Math.floor(s / 60)}:{String(s % 60).padStart(2, "0")}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb1">Working weights</div>
+        <div className="card" style={{ padding: "0 16px" }}>
+          {Object.entries(LIFTS).map(([k, v], i) => (
+            <div key={k} style={i > 0 ? divide : null}>
+              <SetRow label={v.name}>
+                <Stepper value={data.weights[k]} unit={data.unit} step={data.inc} min={data.bar}
+                  onChange={(n) => setField(k, n)}
+                  onEdit={() => setEditing({ field: k, title: v.name, value: data.weights[k] })} />
+              </SetRow>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: "#a3a3a3", margin: "6px 4px 0" }}>
+          Use +/- to nudge, or tap the number to type an exact value.
+        </p>
+      </div>
+
+      <button onClick={onClear}
+        style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1px solid #fca5a5", color: "#dc2626", fontWeight: 600, fontSize: 14, background: "#fff" }}>
+        Erase all data
+      </button>
+
+      {editing && (
+        <KeypadModal title={editing.title} unit={data.unit} initial={editing.value}
+          onCancel={() => setEditing(null)}
+          onSave={(n) => { setField(editing.field, n); setEditing(null); }} />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+
+<script>
+  /* register the service worker for offline use */
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch((e) => console.warn("SW failed", e));
+    });
+  }
+</script>
+</body>
+</html>
