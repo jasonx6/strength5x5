@@ -462,7 +462,7 @@ function parseCSV(text) {
 function importStrongliftsCsv(csvText) {
   const rows = parseCSV(csvText);
   if (rows.length < 2) return null;
-  const header = rows[0];
+  const header = rows[0].map(h => h.trim());
   const ci = (name) => header.indexOf(name);
   const C_DATE = ci("Date (yyyy/mm/dd)"), C_NUM = ci("Workout");
   const C_NAME = ci("Workout Name"), C_EX = ci("Exercise");
