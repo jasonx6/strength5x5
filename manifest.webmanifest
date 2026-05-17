@@ -1,6 +1,6 @@
 {
-  "name": "Strong 5×5",
-  "short_name": "Strong 5×5",
+  "name": "5x5 Workout",
+  "short_name": "5x5 Workout",
   "description": "A 5x5 progressive overload workout tracker.",
   "start_url": "./index.html",
   "scope": "./",

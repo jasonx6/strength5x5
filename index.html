@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
-<title>Strong 5×5</title>
+<title>5x5 Workout</title>
 <meta name="theme-color" content="#f97316" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="icon-192.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="apple-mobile-web-app-title" content="Strong 5×5" />
+<meta name="apple-mobile-web-app-title" content="5x5 Workout" />
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -432,6 +432,116 @@ function KeypadModal({ title, unit, initial, onCancel, onSave }) {
   );
 }
 
+/* ---- Stronglifts CSV import ---- */
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = "", inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else field += c;
+    } else if (c === '"') {
+      inQ = true;
+    } else if (c === ',') {
+      row.push(field); field = "";
+    } else if (c === '\n') {
+      row.push(field);
+      if (row.some(x => x)) rows.push(row);
+      row = []; field = "";
+    } else if (c !== '\r') {
+      field += c;
+    }
+  }
+  row.push(field);
+  if (row.some(x => x)) rows.push(row);
+  return rows;
+}
+
+function importStrongliftsCsv(csvText) {
+  const rows = parseCSV(csvText);
+  if (rows.length < 2) return null;
+  const header = rows[0];
+  const ci = (name) => header.indexOf(name);
+  const C_DATE = ci("Date (yyyy/mm/dd)"), C_NUM = ci("Workout");
+  const C_NAME = ci("Workout Name"), C_EX = ci("Exercise");
+  const C_REPS = [], C_KG = [];
+  for (let i = 0; i < header.length; i++) {
+    if (/^Set \d+ \(Reps\)$/.test(header[i])) C_REPS.push(i);
+    if (/^Set \d+ \(KG\)$/.test(header[i])) C_KG.push(i);
+  }
+  if (C_DATE < 0 || C_EX < 0 || !C_KG.length) return null;
+  const EMAP = {
+    "Squat": "squat", "Bench Press": "bench", "Barbell Row": "row",
+    "Overhead Press": "ohp", "Deadlift": "deadlift",
+  };
+  const wkMap = new Map();
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r[C_DATE]) continue;
+    const key = r[C_DATE] + "_" + r[C_NUM];
+    if (!wkMap.has(key)) wkMap.set(key, { date: r[C_DATE], name: r[C_NAME] || "", rows: [] });
+    wkMap.get(key).rows.push(r);
+  }
+  const history = [];
+  for (const [, wk] of wkMap) {
+    const entries = [];
+    for (const row of wk.rows) {
+      const lift = EMAP[row[C_EX]];
+      if (!lift) continue;
+      const cap = SET_COUNT[lift];
+      const reps = [];
+      for (let s = 0; s < Math.min(cap, C_KG.length); s++) {
+        if (!row[C_KG[s]]) break;
+        const r = row[C_REPS[s]];
+        reps.push(!r ? 0 : parseInt(r, 10) || 0);
+      }
+      if (!reps.length) continue;
+      const weight = parseFloat(row[C_KG[0]]) || 0;
+      const success = reps.length === cap && reps.every(r => r >= TARGET_REPS);
+      entries.push({ lift, weight, reps, success });
+    }
+    if (!entries.length) continue;
+    const liftSet = new Set(entries.map(e => e.lift));
+    const n = wk.name;
+    let workout;
+    if (/workout a$/i.test(n)) workout = "A";
+    else if (/workout b$/i.test(n)) workout = "B";
+    else if (liftSet.has("bench") && !liftSet.has("ohp")) workout = "A";
+    else if (liftSet.has("ohp") && !liftSet.has("bench")) workout = "B";
+    else if (liftSet.has("row")) workout = "A";
+    else workout = "B";
+    const [y, m, d] = wk.date.split("/").map(Number);
+    const dt = new Date(y, m - 1, d, 12, 0, 0);
+    history.push({ id: dt.getTime(), date: dt.toISOString(), workout, entries });
+  }
+  if (!history.length) return null;
+  history.sort((a, b) => b.id - a.id);
+  const weights = { squat: 20, bench: 20, row: 30, ohp: 20, deadlift: 40 };
+  const fails = { squat: 0, bench: 0, row: 0, ohp: 0, deadlift: 0 };
+  for (const h of [...history].reverse()) {
+    for (const e of h.entries) {
+      const step = e.lift === "deadlift" ? 5 : 2.5;
+      if (e.success) {
+        weights[e.lift] = e.weight + step;
+        fails[e.lift] = 0;
+      } else {
+        const f = (fails[e.lift] || 0) + 1;
+        if (f >= 3) {
+          weights[e.lift] = Math.max(20, Math.round((e.weight * 0.9) / step) * step);
+          fails[e.lift] = 0;
+        } else {
+          weights[e.lift] = e.weight;
+          fails[e.lift] = f;
+        }
+      }
+    }
+  }
+  const nextWorkout = history[0].workout === "A" ? "B" : "A";
+  return { history, weights, fails, nextWorkout };
+}
+
 /* ------------------------------------------------------------------ */
 function App() {
   const [data, setData] = useState(defaultData);
@@ -584,7 +694,7 @@ function App() {
             <IDumbbell size={20} color="#fff" />
           </div>
           <div>
-            <div style={{ ...D, fontSize: 18, fontWeight: 700, lineHeight: 1, color: "#171717", letterSpacing: "-0.01em" }}>STRONG 5×5</div>
+            <div style={{ ...D, fontSize: 18, fontWeight: 700, lineHeight: 1, color: "#171717", letterSpacing: "-0.01em" }}>5×5 WORKOUT</div>
             <div className="label">Progression tracker</div>
           </div>
         </div>
@@ -611,6 +721,17 @@ function App() {
               body: "Workout history, weights and progress will be permanently deleted.",
               action: () => setData(defaultData()),
             })}
+            onImport={(result) => setConfirm({
+              title: "Import workout history?",
+              body: `Found ${result.history.length} workout${result.history.length === 1 ? "" : "s"} from Stronglifts. This will replace your current history and update your working weights.`,
+              action: () => setData(d => ({
+                ...defaultData(),
+                unit: d.unit, inc: d.inc, incDeadlift: d.incDeadlift,
+                bar: d.bar, restDuration: d.restDuration, showWarmup: d.showWarmup,
+                history: result.history, weights: result.weights,
+                fails: result.fails, nextWorkout: result.nextWorkout,
+              })),
+            })}
           />
         )}
       </div>
@@ -618,7 +739,7 @@ function App() {
       {installEvt && !restActive && (
         <div className="install-bar">
           <IDumbbell size={20} color="#f97316" />
-          <div className="flex1" style={{ fontSize: 13 }}>Install Strong 5×5 to your home screen</div>
+          <div className="flex1" style={{ fontSize: 13 }}>Install 5x5 Workout to your home screen</div>
           <button onClick={doInstall} style={{ ...D, background: "#f97316", color: "#fff", fontWeight: 700, padding: "6px 12px", borderRadius: 8 }}>Install</button>
           <button onClick={() => setInstallEvt(null)} style={{ color: "#a3a3a3" }}><IX size={16} /></button>
         </div>
@@ -885,8 +1006,10 @@ function SetRow({ label, children }) {
   );
 }
 
-function SettingsTab({ data, setData, onClear }) {
+function SettingsTab({ data, setData, onClear, onImport }) {
   const [editing, setEditing] = useState(null);
+  const [importErr, setImportErr] = useState("");
+  const fileRef = React.useRef(null);
   const setField = (field, n) => setData((d) => {
     if (field === "inc") return { ...d, inc: n };
     if (field === "incDeadlift") return { ...d, incDeadlift: n };
@@ -986,6 +1109,38 @@ function SettingsTab({ data, setData, onClear }) {
         </div>
         <p style={{ fontSize: 11, color: "#a3a3a3", margin: "6px 4px 0" }}>
           Use +/- to nudge, or tap the number to type an exact value.
+        </p>
+      </div>
+
+      <div>
+        <div className="label mb1">Data</div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              e.target.value = "";
+              const result = importStrongliftsCsv(ev.target.result);
+              if (!result) { setImportErr("Could not parse the file. Make sure it's a Stronglifts CSV export."); return; }
+              setImportErr("");
+              onImport(result);
+            };
+            reader.readAsText(file);
+          }}
+        />
+        <button
+          onClick={() => fileRef.current && fileRef.current.click()}
+          style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1px solid #d4d4d4", color: "#404040", fontWeight: 600, fontSize: 14, background: "#fff" }}>
+          Import Stronglifts CSV
+        </button>
+        {importErr && <p style={{ fontSize: 11, color: "#dc2626", margin: "6px 4px 0" }}>{importErr}</p>}
+        <p style={{ fontSize: 11, color: "#a3a3a3", margin: "6px 4px 0" }}>
+          Import workout history exported from the Stronglifts app.
         </p>
       </div>
 
