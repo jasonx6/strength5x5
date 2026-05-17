@@ -137,6 +137,7 @@ const defaultData = () => ({
   unit: "kg", inc: 2.5, incDeadlift: 5, bar: 20, restDuration: 180, showWarmup: true,
   weights: { squat: 20, bench: 20, row: 30, ohp: 20, deadlift: 40 },
   fails: { squat: 0, bench: 0, row: 0, ohp: 0, deadlift: 0 },
+  autoInc: { squat: true, bench: true, row: true, ohp: true, deadlift: true },
   nextWorkout: "A", current: null, restEndsAt: null, history: [],
 });
 
@@ -628,9 +629,13 @@ function App() {
         const weight = d.weights[lift];
         entries.push({ lift, weight, reps, success });
         const step = lift === "deadlift" ? d.incDeadlift : d.inc;
-        if (success) {
+        const shouldInc = (d.autoInc || {})[lift] !== false;
+        if (success && shouldInc) {
           weights[lift] = weight + step; fails[lift] = 0;
           results.push({ lift, type: "up", from: weight, to: weight + step });
+        } else if (success) {
+          fails[lift] = 0;
+          results.push({ lift, type: "hold", from: weight, to: weight });
         } else {
           const f = (d.fails[lift] || 0) + 1;
           if (f >= 3) {
@@ -777,6 +782,7 @@ function App() {
                 <span style={{ fontSize: 14, fontWeight: 500, color: "#404040" }}>{LIFTS[r.lift].name}</span>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>
                   {r.type === "up" && <span style={{ color: "#ea580c" }}>{fmt(r.from)} → {fmt(r.to)} {data.unit}</span>}
+                  {r.type === "hold" && <span style={{ color: "#a3a3a3" }}>holding {fmt(r.to)} {data.unit}</span>}
                   {r.type === "stay" && <span style={{ color: "#d97706" }}>repeat {fmt(r.to)} · miss {r.fails}/3</span>}
                   {r.type === "deload" && <span style={{ color: "#dc2626" }}>deload → {fmt(r.to)} {data.unit}</span>}
                 </span>
@@ -1097,18 +1103,24 @@ function SettingsTab({ data, setData, onClear, onImport }) {
       <div>
         <div className="label mb1">Working weights</div>
         <div className="card" style={{ padding: "0 16px" }}>
-          {Object.entries(LIFTS).map(([k, v], i) => (
-            <div key={k} style={i > 0 ? divide : null}>
-              <SetRow label={v.name}>
-                <Stepper value={data.weights[k]} unit={data.unit} step={data.inc} min={data.bar}
-                  onChange={(n) => setField(k, n)}
-                  onEdit={() => setEditing({ field: k, title: v.name, value: data.weights[k] })} />
-              </SetRow>
-            </div>
-          ))}
+          {Object.entries(LIFTS).map(([k, v], i) => {
+            const inc = (data.autoInc || {})[k] !== false;
+            return (
+              <div key={k} style={i > 0 ? divide : null}>
+                <SetRow label={v.name}>
+                  <div className="row aic gap2">
+                    <Toggle on={inc} onChange={(val) => setData((d) => ({ ...d, autoInc: { ...(d.autoInc || {}), [k]: val } }))} />
+                    <Stepper value={data.weights[k]} unit={data.unit} step={data.inc} min={data.bar}
+                      onChange={(n) => setField(k, n)}
+                      onEdit={() => setEditing({ field: k, title: v.name, value: data.weights[k] })} />
+                  </div>
+                </SetRow>
+              </div>
+            );
+          })}
         </div>
         <p style={{ fontSize: 11, color: "#a3a3a3", margin: "6px 4px 0" }}>
-          Use +/- to nudge, or tap the number to type an exact value.
+          Toggle auto-increment per lift. Use +/- to nudge, or tap the number to type an exact value.
         </p>
       </div>
 
