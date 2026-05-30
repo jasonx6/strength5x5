@@ -291,17 +291,33 @@ function ExerciseCard({ lift, weight, sets, warmDone, showWarmup, last, bar, uni
                 <button
                   key={i}
                   onClick={() => onTapWarmup(lift, i)}
-                  className="row aic gap1"
                   style={{
-                    height: 36, padding: "0 10px", borderRadius: 8,
+                    padding: "4px 10px", borderRadius: 8,
                     border: wd ? "1px solid #262626" : "1px solid #d4d4d4",
                     background: wd ? "#262626" : "#fff",
                     color: wd ? "#fff" : "#737373",
+                    display: "flex", flexDirection: "column", alignItems: "flex-start",
                   }}
                 >
-                  {wd && <ICheck size={12} />}
-                  <span style={{ ...D, fontSize: 14, fontWeight: 700 }}>{fmt(w.weight)}</span>
-                  <span style={{ fontSize: 10, opacity: 0.7 }}>×{w.reps}</span>
+                  <div className="row aic gap1">
+                    {wd && <ICheck size={12} />}
+                    <span style={{ ...D, fontSize: 14, fontWeight: 700 }}>{fmt(w.weight)}</span>
+                    <span style={{ fontSize: 10, opacity: 0.7 }}>×{w.reps}</span>
+                  </div>
+                  {(() => {
+                    const wp = platesPerSide(w.weight, bar, unit);
+                    return (
+                      <div className="row aic gap1 wrapf" style={{ marginTop: 1 }}>
+                        {wp.length === 0
+                          ? <span style={{ fontSize: 9, opacity: 0.6 }}>bar</span>
+                          : wp.map((p, pi) => (
+                              <span key={pi} style={{ fontSize: 9, fontWeight: 700, opacity: 0.7 }}>
+                                {fmt(p)}{pi < wp.length - 1 ? "," : ""}
+                              </span>
+                            ))}
+                      </div>
+                    );
+                  })()}
                 </button>
               );
             })}
@@ -611,9 +627,15 @@ function App() {
       if (!d.current) return d;
       const warmups = { ...(d.current.warmups || {}) };
       const arr = (warmups[lift] || []).slice();
-      arr[idx] = !arr[idx];
+      const newVal = !arr[idx];
+      arr[idx] = newVal;
       warmups[lift] = arr;
-      return { ...d, current: { ...d.current, warmups } };
+      const justFinishedAll = newVal && arr.every(Boolean);
+      return {
+        ...d,
+        current: { ...d.current, warmups },
+        restEndsAt: justFinishedAll ? Date.now() + 180 * 1000 : d.restEndsAt,
+      };
     });
   }, []);
 
