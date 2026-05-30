@@ -161,7 +161,7 @@ function platesPerSide(weight, bar, unit) {
 
 function warmupSets(work, bar, unit) {
   if (work <= bar) return [];
-  const grain = unit === "lb" ? 2.5 : 1.25;
+  const grain = unit === "lb" ? 5 : 2.5; // 2 × smallest plate — minimum achievable step
   const rnd = (w) => Math.round(w / grain) * grain;
   const out = [{ weight: bar, reps: 5 }, { weight: bar, reps: 5 }];
   const ramps = [{ pct: 0.4, reps: 5 }, { pct: 0.6, reps: 3 }, { pct: 0.8, reps: 2 }];
