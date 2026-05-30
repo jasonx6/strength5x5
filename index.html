@@ -449,6 +449,25 @@ function KeypadModal({ title, unit, initial, onCancel, onSave }) {
   );
 }
 
+/* ---- CSV export ---- */
+function exportCsv(data) {
+  const rows = [["date", "workout", "lift", "weight", "unit", "reps", "success"]];
+  for (const h of [...data.history].reverse()) {
+    const date = h.date.slice(0, 10);
+    for (const e of h.entries) {
+      rows.push([date, h.workout, e.lift, fmt(e.weight), data.unit, e.reps.join("-"), e.success ? "yes" : "no"]);
+    }
+  }
+  const csv = rows.map((r) => r.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "5x5-history.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /* ---- Stronglifts CSV import ---- */
 function parseCSV(text) {
   const rows = [];
@@ -1167,6 +1186,12 @@ function SettingsTab({ data, setData, onClear, onImport }) {
             reader.readAsText(file);
           }}
         />
+        <button
+          onClick={() => exportCsv(data)}
+          disabled={data.history.length === 0}
+          style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1px solid #d4d4d4", color: data.history.length === 0 ? "#a3a3a3" : "#404040", fontWeight: 600, fontSize: 14, background: "#fff", marginBottom: 8 }}>
+          Export history CSV
+        </button>
         <button
           onClick={() => fileRef.current && fileRef.current.click()}
           style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1px solid #d4d4d4", color: "#404040", fontWeight: 600, fontSize: 14, background: "#fff" }}>

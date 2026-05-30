@@ -1,5 +1,5 @@
 /* 5x5 Workout service worker — offline support via cache-first app shell. */
-const CACHE = "5x5workout-v8";
+const CACHE = "5x5workout-v9";
 const ASSETS = [
   "./",
   "./index.html",
